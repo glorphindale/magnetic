@@ -2,6 +2,13 @@
   (:import [java.awt.event KeyEvent])
   (:require [quil.core :as qc]))
 
+(def blue   [53 108 237])
+(def yellow [235 229 20])
+(def white  [255 255 255])
+(def red    [255 0 0])
+(def green  [0 255 0])
+(def black  [0 0 0])
+
 (def width 400)
 (def height 400)
 (def maxx 2)
@@ -59,24 +66,29 @@
       [power 0x00 0x00]
       [0x00 power 0x00])))
 
-
-
 (defn draw []
-  (qc/background-float 0x22)
+  (apply qc/background black)
+  (apply qc/fill white)
+  (let [mx (qc/mouse-x)
+        my (qc/mouse-y)
+        mouse (pix->coord [mx my])]
+    (qc/text (str mouse) 20 20))
+
+  (qc/no-stroke)
 
   (doseq [x (range (- maxx) maxx @step)
-          y (range (- maxy) maxy @step)]
-    (let [d (distance [x y] [0 0])
-          [nx ny] (coord->pix [x y])
-          i (intensity [x y] @charges)
-          c (intensity->color i)]
-      (apply qc/fill c)
-      (qc/rect nx ny 1 2)))
+            y (range (- maxy) maxy @step)]
+      (let [d (distance [x y] [0 0])
+            [nx ny] (coord->pix [x y])
+            i (intensity [x y] @charges)
+            c (intensity->color i)]
+        (apply qc/fill c)
+        (qc/rect nx ny 1 2)))
 
-  #_(doseq [[x y sign] charges]
+  (doseq [[x y sign] @charges]
     (if (> sign 0)
-      (qc/fill 0xff 0x00 0x00)
-      (qc/fill 0x00 0xff 0x00))
+      (apply qc/fill red)
+      (apply qc/fill green))
     (let [[nx ny] (coord->pix [x y])]
       (qc/ellipse nx ny 8 8))))
 
@@ -96,14 +108,23 @@
   (let [x (qc/mouse-x)
         y (qc/mouse-y)
         orig (pix->coord [x y])
-        charge (conj orig 1.0)]
+        sign (if (= (qc/mouse-button) :left) 1.0 -1.0)
+        charge (conj orig sign)]
     (swap! charges conj charge)))
+
+(defn setup []
+  (qc/smooth)
+  (qc/stroke-weight 16)
+  (qc/ellipse-mode :center)
+  (qc/text-font (qc/create-font "DejaVu Sans" 16 true))
+  (qc/frame-rate 10))
 
 (qc/defsketch magnetic
   :title "Magnetic"
   :size [width height]
-  :setup (fn [] (qc/smooth) (qc/no-stroke) (qc/frame-rate 30))
+  :setup setup
   :draw draw
   :key-pressed key-pressed
   :mouse-clicked mouse-clicked
   )
+
