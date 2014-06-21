@@ -2,15 +2,7 @@
   (:import [java.awt.event KeyEvent])
   (:require [quil.core :as qc]))
 
-(def blue   [53 108 237])
-(def yellow [235 229 20])
-(def white  [255 255 255])
-(def red    [255 0 0])
-(def green  [0 255 0])
-(def black  [0 0 0])
-
-(def width 400)
-(def height 400)
+;; Logic
 (def maxx 2)
 (def maxy 2)
 
@@ -18,17 +10,6 @@
 
 (def charges
   (atom [[1 1 -1]]))
-
-;; Map abstract coordinates to the screen
-(defn coord->pix [[x y]]
-  (let [stepx (/ width maxx)
-        stepy (/ height maxy)]
-    [(* x stepx) (* y stepy)]))
-
-(defn pix->coord [[x y]]
-  (let [stepx (/ width maxx)
-        stepy (/ height maxy)]
-    [(/ x stepx) (/ y stepy)]))
 
 (def econstant
   (/ 1 (* 4 Math/PI 8.854187817E-12)))
@@ -58,6 +39,26 @@
       [power 0x00 0x00]
       [0x00 power 0x00])))
 
+;; Drawings
+(def blue   [53 108 237])
+(def yellow [235 229 20])
+(def white  [255 255 255])
+(def red    [255 0 0])
+(def green  [0 255 0])
+(def black  [0 0 0])
+
+(def width 400)
+(def height 400)
+;; Map abstract coordinates to the screen
+(defn coord->pix [[x y]]
+  (let [stepx (/ width maxx)
+        stepy (/ height maxy)]
+    [(* x stepx) (* y stepy)]))
+
+(defn pix->coord [[x y]]
+  (let [stepx (/ width maxx)
+        stepy (/ height maxy)]
+    [(/ x stepx) (/ y stepy)]))
 
 (defn draw []
   (apply qc/background black)
