@@ -14,29 +14,21 @@
 (def maxx 2)
 (def maxy 2)
 
-(def step (atom 0.2))
+(def step (atom 0.1))
 
 (def charges
-  (atom [[0 0 -1]]))
+  (atom [[1 1 -1]]))
 
 ;; Map abstract coordinates to the screen
 (defn coord->pix [[x y]]
-  (let [centerx (/ width 2)
-        centery (/ height 2)
-        gradex (* 2 maxx)
-        gradey (* 2 maxy)
-        stepx (/ width gradex)
-        stepy (/ height gradey)]
-    [(+ centerx (* x stepx)) (+ centery (* y stepy))]))
+  (let [stepx (/ width maxx)
+        stepy (/ height maxy)]
+    [(* x stepx) (* y stepy)]))
 
 (defn pix->coord [[x y]]
-  (let [centerx (/ width 2)
-        centery (/ height 2)
-        gradex (* 2 maxx)
-        gradey (* 2 maxy)
-        stepx (/ width gradex)
-        stepy (/ height gradey)]
-    [(/ (- x centerx) stepx) (/ (- y centery) stepy)]))
+  (let [stepx (/ width maxx)
+        stepy (/ height maxy)]
+    [(/ x stepx) (/ y stepy)]))
 
 (def econstant
   (/ 1 (* 4 Math/PI 8.854187817E-12)))
@@ -66,6 +58,7 @@
       [power 0x00 0x00]
       [0x00 power 0x00])))
 
+
 (defn draw []
   (apply qc/background black)
   (apply qc/fill white)
@@ -76,14 +69,14 @@
 
   (qc/no-stroke)
 
-  (doseq [x (range (- maxx) maxx @step)
-            y (range (- maxy) maxy @step)]
+  (doseq [x (range 0 maxx @step)
+            y (range 0 maxy @step)]
       (let [d (distance [x y] [0 0])
             [nx ny] (coord->pix [x y])
             i (intensity [x y] @charges)
             c (intensity->color i)]
         (apply qc/fill c)
-        (qc/rect nx ny 1 2)))
+        (qc/rect nx ny 1 1)))
 
   (doseq [[x y sign] @charges]
     (if (> sign 0)
@@ -93,16 +86,15 @@
       (qc/ellipse nx ny 8 8))))
 
 (defn key-pressed []
-  (println "(qc/key-code)")
   (cond
    (= (qc/key-code) KeyEvent/VK_W)
       1
    (= (qc/key-code) KeyEvent/VK_S)
       2
    (= (qc/key-code) KeyEvent/VK_UP)
-      (swap! step (fn [x] (* x 2)))
+      (swap! step (fn [x] (* x 1.5)))
    (= (qc/key-code) KeyEvent/VK_DOWN)
-      (swap! step (fn [x] (/ x 2)))))
+      (swap! step (fn [x] (/ x 1.5)))))
 
 (defn mouse-clicked []
   (let [x (qc/mouse-x)
@@ -114,10 +106,10 @@
 
 (defn setup []
   (qc/smooth)
-  (qc/stroke-weight 16)
+  (qc/stroke-weight 12)
   (qc/ellipse-mode :center)
-  (qc/text-font (qc/create-font "DejaVu Sans" 16 true))
-  (qc/frame-rate 10))
+  (qc/text-font (qc/create-font "DejaVu Sans" 12 true))
+  (qc/frame-rate 5))
 
 (qc/defsketch magnetic
   :title "Magnetic"
