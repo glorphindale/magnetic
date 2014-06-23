@@ -2,15 +2,7 @@
   (:import [java.awt.event KeyEvent])
   (:require [quil.core :as qc]))
 
-;; Logic
-(def maxx 2)
-(def maxy 2)
-
-(def step (atom 0.1))
-
-(def charges
-  (atom [[1 1 -1]]))
-
+;; Physics
 (def econstant
   (/ 1 (* 4 Math/PI 8.854187817E-12)))
 
@@ -19,6 +11,9 @@
    (+
     (Math/pow (- x1 x2) 2)
     (Math/pow (- y1 y2) 2))))
+
+;; E = sum(Ei) = econstant * sum(Qi/ri^2 * r^i)
+;;(defn point-power [pivot point charge])
 
 (defn int+ [prev [^Float d ^Float c]]
   (if (< (Math/abs d) 0.00001)
@@ -33,7 +28,23 @@
      0.0
      components)))
 
-(defn intensity->color [i]
+;; Logic
+(def maxx 2)
+(def maxy 2)
+
+(def step (atom 0.1))
+(def charges (atom []))
+(def field (atom []))
+(declare calculate-field)
+
+(defn reset-all! []
+  (swap! step (fn [_] 0.1))
+  (swap! charges (fn [_] [[1 1 -1]]))
+  (swap! field (fn [_] (calculate-field maxx maxy @step @charges))))
+
+
+
+(defn intensity->color [^Float i]
   (let [power (* (/ 255 3.0E10) (Math/abs i))
         int-power (int power)]
     (if (> i 0)
@@ -48,7 +59,6 @@
             c (intensity->color i)]
         [x y i c])))
 
-(def field (atom []))
 
 ;; Drawings
 (def blue   [53 108 237])
@@ -76,8 +86,9 @@
   (apply qc/fill white)
   (let [mx (qc/mouse-x)
         my (qc/mouse-y)
-        mouse (pix->coord [mx my])]
-    (qc/text (str mouse) 20 20))
+        [x y] (pix->coord [mx my])
+        power (intensity [x y] @charges)]
+    (qc/text (format "%2.2f:%2.2f %4.4g" (float x) (float y) power) 20 20))
 
   (qc/no-stroke)
 
@@ -95,14 +106,18 @@
 
 (defn key-pressed []
   (cond
-   (= (qc/key-code) KeyEvent/VK_W)
-      1
+   (= (qc/key-code) KeyEvent/VK_R)
+      (reset-all!)
    (= (qc/key-code) KeyEvent/VK_S)
       2
    (= (qc/key-code) KeyEvent/VK_UP)
-      (swap! step (fn [x] (* x 1.5)))
+      (do
+        (swap! step (fn [x] (* x 1.5)))
+        (swap! field (fn [_] (calculate-field maxx maxy @step @charges))))
    (= (qc/key-code) KeyEvent/VK_DOWN)
-      (swap! step (fn [x] (/ x 1.5)))))
+      (do
+        (swap! step (fn [x] (/ x 1.5)))
+        (swap! field (fn [_] (calculate-field maxx maxy @step @charges))))))
 
 (defn mouse-clicked []
   (let [x (qc/mouse-x)
@@ -119,10 +134,12 @@
   (qc/ellipse-mode :center)
   (qc/text-font (qc/create-font "DejaVu Sans" 12 true))
   (qc/frame-rate 5)
-  (swap! field (fn [_] (calculate-field maxx maxy @step @charges)))
+  (reset-all!)
   )
 
+
 (time (doseq [x (calculate-field maxx maxy 0.01 @charges)]))
+
 (qc/defsketch magnetic
   :title "Magnetic"
   :size [width height]
