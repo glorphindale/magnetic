@@ -14,13 +14,13 @@
 (def econstant
   (/ 1 (* 4 Math/PI 8.854187817E-12)))
 
-(defn distance [[x1 y1] [x2 y2]]
+(defn distance [[^Float x1 ^Float y1] [^Float x2 ^Float y2]]
   (Math/sqrt
    (+
     (Math/pow (- x1 x2) 2)
     (Math/pow (- y1 y2) 2))))
 
-(defn int+ [prev [d c]]
+(defn int+ [prev [^Float d ^Float c]]
   (if (< (Math/abs d) 0.00001)
     prev
     (+ prev (* econstant (/ c (Math/pow d 2))))))
@@ -34,10 +34,21 @@
      components)))
 
 (defn intensity->color [i]
-  (let [power (* (/ 255 3.0E10) (Math/abs i))]
+  (let [power (* (/ 255 3.0E10) (Math/abs i))
+        int-power (int power)]
     (if (> i 0)
-      [power 0x00 0x00]
-      [0x00 power 0x00])))
+      [int-power 0x00 0x00]
+      [0x00 int-power 0x00])))
+
+(defn calculate-field [w h grid-step charges]
+  (for [x (range 0 w grid-step)
+        y (range 0 h grid-step)]
+      (let [d (distance [x y] [0 0])
+            i (intensity [x y] charges)
+            c (intensity->color i)]
+        [x y i c])))
+
+(def field (atom []))
 
 ;; Drawings
 (def blue   [53 108 237])
@@ -70,14 +81,10 @@
 
   (qc/no-stroke)
 
-  (doseq [x (range 0 maxx @step)
-            y (range 0 maxy @step)]
-      (let [d (distance [x y] [0 0])
-            [nx ny] (coord->pix [x y])
-            i (intensity [x y] @charges)
-            c (intensity->color i)]
-        (apply qc/fill c)
-        (qc/rect nx ny 1 1)))
+  (doseq [[x y i c] @field]
+    (let [[nx ny] (coord->pix [x y])]
+      (apply qc/fill c)
+      (qc/rect nx ny 1 1)))
 
   (doseq [[x y sign] @charges]
     (if (> sign 0)
@@ -103,15 +110,19 @@
         orig (pix->coord [x y])
         sign (if (= (qc/mouse-button) :left) 1.0 -1.0)
         charge (conj orig sign)]
-    (swap! charges conj charge)))
+    (swap! charges conj charge)
+    (swap! field (fn [_] (calculate-field maxx maxy @step @charges)))))
 
 (defn setup []
   (qc/smooth)
   (qc/stroke-weight 12)
   (qc/ellipse-mode :center)
   (qc/text-font (qc/create-font "DejaVu Sans" 12 true))
-  (qc/frame-rate 5))
+  (qc/frame-rate 5)
+  (swap! field (fn [_] (calculate-field maxx maxy @step @charges)))
+  )
 
+(time (doseq [x (calculate-field maxx maxy 0.01 @charges)]))
 (qc/defsketch magnetic
   :title "Magnetic"
   :size [width height]
